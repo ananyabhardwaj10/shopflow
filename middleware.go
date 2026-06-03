@@ -1,6 +1,7 @@
 package mainimport(
 	"net/http"
 	"log"
+	"context"
 
 	"github.com/ananyabhardwaj10/shopflow/internal/auth"
 )
@@ -28,3 +29,24 @@ func (cfg *apiConfig) authMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, req)
 	})
 }
+
+func roleMiddleware(role string) (func(http.Handler) http.Handler) {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request){
+		ctx := req.Context()
+		roleVal, ok := ctx.Value(auth.ContextKeyRole).(string)
+		if !ok {
+			log.Printf("Missing Role information")
+			w.WriteHeader(http.StatusUnauthorized)
+			return 
+		}
+
+		if roleVal != role {
+			log.Printf("Role mismatch")
+			w.WriteHeader(http.StatusForbidden)
+			return 
+		}
+
+		next.ServeHTTP(w, req)
+	})
+}}
