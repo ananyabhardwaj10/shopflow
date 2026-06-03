@@ -5,6 +5,12 @@ import(
 	"strings"
 )
 
+type ContextKey string 
+const (
+	ContextKeyUserID ContextKey = "userID"
+	ContextKeyRole ContextKey = "role"
+)
+
 func GetBearerToken(headers http.Header) (string, err) {
 	token := headers.Get("Authorization")
 
