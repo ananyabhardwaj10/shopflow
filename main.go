@@ -1,0 +1,48 @@
+package main
+import (
+	"net/http"
+	"os"
+	"log"
+	"database/sql"
+	_ "github.com/lib/pq"
+	"github.com/joho/godotenv"
+)
+
+type apiConfig struct {
+	db *database.Queries
+	jwtSecretKey string 
+}
+func main() {
+	godotenv.Load()
+	dbURL := os.Getenv("DATABASE_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Printf("Error opening the database: %s", err)
+		os.Exit(1)
+	}
+	dbQueries := database.New(db)
+
+	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
+
+	mux := http.NewServeMux() 
+
+	server := &http.Server{
+		Addr: ":8086",
+		Handler: mux,
+	}
+
+	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Working Just Fine!"))
+	})
+
+	apiCfg := apiConfig{
+		db: dbQueries,
+		jwtSecretKey: jwtSecretKey,
+	}
+
+	mux.HandleFunc("POST /api/auth/register", apiCfg.handlerRegisterUser)
+
+	server.ListenAndServe()
+}
