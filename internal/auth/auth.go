@@ -3,6 +3,7 @@ import(
 	"net/http"
 	"fmt"
 	"strings"
+	"github.com/alexedwards/argon2id"
 )
 
 type ContextKey string 
@@ -11,17 +12,31 @@ const (
 	ContextKeyRole ContextKey = "role"
 )
 
-func GetBearerToken(headers http.Header) (string, err) {
+func GetBearerToken(headers http.Header) (string, error) {
 	token := headers.Get("Authorization")
 
-	if token = "" {
-		"", fmt.Errorf("No authorization information found. Please try again.")
+	if token == "" {
+		return "", fmt.Errorf("No authorization information found. Please try again.")
 	}
 
-	splitToken := strings.Split(" ")
+	splitToken := strings.Split(token, " ")
 	if len(splitToken) < 2 || splitToken[0] != "Bearer" {
 		return "", fmt.Errorf("malformed authorization header")
 	}
 
 	return splitToken[1], nil
+}
+
+func HashPassword(password string) (string, error) {
+	hashed_password, err := argon2id.CreateHash(password, argon2id.DefaultParams)
+	if err != nil {
+		return "", err 
+	}
+
+	return hashed_password, nil 
+}
+
+func CheckHashedPassword(password, hash string) (bool, error) {
+	match, err := argon2id.ComparePasswordAndHash(password, hash)
+	return match, err 
 }

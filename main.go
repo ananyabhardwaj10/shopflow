@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"github.com/joho/godotenv"
+	"github.com/ananyabhardwaj10/shopflow/internal/database"
 )
 
 type apiConfig struct {
@@ -42,6 +43,7 @@ func main() {
 		jwtSecretKey: jwtSecretKey,
 	}
 
+	//PUBLIC ROUTES
 	mux.HandleFunc("POST /api/auth/register", apiCfg.handlerRegisterUser)
 
 	server.ListenAndServe()
