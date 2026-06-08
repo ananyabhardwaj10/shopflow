@@ -45,6 +45,7 @@ func main() {
 
 	//PUBLIC ROUTES
 	mux.HandleFunc("POST /api/auth/register", apiCfg.handlerRegisterUser)
+	mux.HandleFunc("POST /api/auth/login", apiCfg.handlerLogin)
 
 	server.ListenAndServe()
 }

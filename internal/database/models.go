@@ -11,6 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type RefreshToken struct {
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiresAt time.Time
+	RevokedAt sql.NullTime
+	UserID    uuid.UUID
+}
+
 type User struct {
 	ID             uuid.UUID
 	CreatedAt      time.Time
