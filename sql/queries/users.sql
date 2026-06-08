@@ -12,3 +12,15 @@ VALUES(
 -- name: GetUserByEmail :one
 SELECT * FROM users 
 WHERE email = $1;
+
+-- name: UpdateUserDetails :one
+UPDATE users 
+SET 
+    first_name = COALESCE(sqlc.narg('first_name'), first_name),
+    last_name = COALESCE(sqlc.narg('last_name'), last_name),
+    contact_number = COALESCE(sqlc.narg('contact_number'), contact_number),
+    address = COALESCE(sqlc.narg('address'), address),
+    email = COALESCE(sqlc.narg('email'), email),
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;

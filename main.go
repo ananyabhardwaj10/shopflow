@@ -49,5 +49,8 @@ func main() {
 	mux.HandleFunc("POST /api/auth/logout", apiCfg.handlerLogout)
 	mux.HandleFunc("POST /api/auth/refresh", apiCfg.handlerRefreshTokens)
 
+	//Protected Routes
+	mux.Handle("PATCH /api/customer/profile", chain(http.HandlerFunc(apiCfg.handlerUpdateUserProfile), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
+
 	server.ListenAndServe()
 }

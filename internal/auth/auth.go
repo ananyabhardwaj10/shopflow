@@ -1,11 +1,13 @@
 package auth 
 import(
 	"net/http"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"strings"
 	"github.com/alexedwards/argon2id"
+	"github.com/google/uuid"
 )
 
 type ContextKey string 
@@ -13,6 +15,24 @@ const (
 	ContextKeyUserID ContextKey = "userID"
 	ContextKeyRole ContextKey = "role"
 )
+
+func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
+	userID, ok := ctx.Value(ContextKeyUserID).(uuid.UUID)
+	if !ok {
+		return uuid.Nil, fmt.Errorf("user id not found in context")
+	}
+
+	return userID, nil 
+}
+
+func GetRoleFromContext(ctx context.Context) (string, error) {
+	role, ok := ctx.Value(ContextKeyRole).(string)
+	if !ok {
+		return "", fmt.Errorf("role not found in context")
+	}
+
+	return role, nil
+}
 
 func GetBearerToken(headers http.Header) (string, error) {
 	token := headers.Get("Authorization")

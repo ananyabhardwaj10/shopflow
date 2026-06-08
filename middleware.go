@@ -31,7 +31,7 @@ func (cfg *apiConfig) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func roleMiddleware(role string) (func(http.Handler) http.Handler) {
+func roleMiddleware(roles ...string) (func(http.Handler) http.Handler) {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request){
 		ctx := req.Context()
@@ -42,7 +42,15 @@ func roleMiddleware(role string) (func(http.Handler) http.Handler) {
 			return 
 		}
 
-		if roleVal != role {
+		allowed := false
+		for _, role := range roles {
+			if roleVal == role {
+				allowed = true
+				break 
+			}
+		}
+
+		if !allowed {
 			log.Printf("Role mismatch")
 			w.WriteHeader(http.StatusForbidden)
 			return 
@@ -51,3 +59,11 @@ func roleMiddleware(role string) (func(http.Handler) http.Handler) {
 		next.ServeHTTP(w, req)
 	})
 }}
+
+func chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		h = middlewares[i](h)
+	}
+
+	return h
+}

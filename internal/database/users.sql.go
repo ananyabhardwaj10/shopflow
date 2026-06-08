@@ -7,6 +7,9 @@ package database
 
 import (
 	"context"
+	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -60,6 +63,53 @@ WHERE email = $1
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.FirstName,
+		&i.LastName,
+		&i.ContactNumber,
+		&i.Address,
+		&i.Email,
+		&i.HashedPassword,
+		&i.Role,
+	)
+	return i, err
+}
+
+const updateUserDetails = `-- name: UpdateUserDetails :one
+UPDATE users 
+SET 
+    first_name = COALESCE($2, first_name),
+    last_name = COALESCE($3, last_name),
+    contact_number = COALESCE($4, contact_number),
+    address = COALESCE($5, address),
+    email = COALESCE($6, email),
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, created_at, updated_at, first_name, last_name, contact_number, address, email, hashed_password, role
+`
+
+type UpdateUserDetailsParams struct {
+	ID            uuid.UUID
+	FirstName     sql.NullString
+	LastName      sql.NullString
+	ContactNumber sql.NullString
+	Address       sql.NullString
+	Email         sql.NullString
+}
+
+func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserDetails,
+		arg.ID,
+		arg.FirstName,
+		arg.LastName,
+		arg.ContactNumber,
+		arg.Address,
+		arg.Email,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
