@@ -46,7 +46,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return 
 	}
 
-	accessToken, err := auth.MakeJWT(user.ID, user.Role, cfg.jwtSecretKey, time.Hour)
+	accessToken, err := auth.MakeJWT(user.ID, user.Role, cfg.jwtSecretKey, 15 * time.Minute)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to create access token", err)
 		return 
@@ -102,5 +102,5 @@ func (cfg *apiConfig) handlerLogout(w http.ResponseWriter, req *http.Request) {
 		return 
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }

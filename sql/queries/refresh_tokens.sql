@@ -16,3 +16,9 @@ WHERE token = $1 AND revoked_at IS NULL AND expires_at > NOW();
 UPDATE refresh_tokens
 SET revoked_at = NOW(), updated_at = NOW()
 WHERE token = $1;
+
+-- name: GetUserByRefreshToken :one
+SELECT users.* FROM refresh_tokens 
+INNER JOIN users
+ON refresh_tokens.user_id = users.id 
+WHERE token = $1 AND revoked_at IS NULL AND expires_at > NOW();
