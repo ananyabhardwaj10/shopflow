@@ -82,3 +82,25 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	})
 	
 }
+
+func (cfg *apiConfig) handlerLogout(w http.ResponseWriter, req *http.Request) {
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incomplete Authorization Information", err)
+		return 
+	}
+
+	_, err = cfg.db.GetRefreshToken(req.Context(), token)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Refresh Token mismatch", err)
+		return 
+	}
+
+	err = cfg.db.RevokeRefreshToken(req.Context(), token)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to revoke refresh token", err)
+		return 
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
