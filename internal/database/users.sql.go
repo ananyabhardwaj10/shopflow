@@ -12,6 +12,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const changeUserPassword = `-- name: ChangeUserPassword :exec
+UPDATE users 
+SET 
+    hashed_password = $1,
+    updated_at = NOW()
+WHERE id = $2
+`
+
+type ChangeUserPasswordParams struct {
+	HashedPassword string
+	ID             uuid.UUID
+}
+
+func (q *Queries) ChangeUserPassword(ctx context.Context, arg ChangeUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, changeUserPassword, arg.HashedPassword, arg.ID)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, first_name, last_name, contact_number, email, hashed_password)
 VALUES(
@@ -63,6 +81,29 @@ WHERE email = $1
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.FirstName,
+		&i.LastName,
+		&i.ContactNumber,
+		&i.Address,
+		&i.Email,
+		&i.HashedPassword,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getUserFromUserID = `-- name: GetUserFromUserID :one
+SELECT id, created_at, updated_at, first_name, last_name, contact_number, address, email, hashed_password, role FROM users 
+WHERE id = $1
+`
+
+func (q *Queries) GetUserFromUserID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserFromUserID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,

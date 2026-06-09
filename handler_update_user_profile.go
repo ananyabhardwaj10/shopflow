@@ -90,3 +90,58 @@ func (cfg *apiConfig) handlerUpdateUserProfile(w http.ResponseWriter, req *http.
 		LastName: user.LastName,
 	})
 }
+
+func (cfg *apiConfig) handlerChangePassword(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	params := parameters{}
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incomplete Data. Please try again.", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get user id from context", err)
+		return 
+	}
+
+	user, err := cfg.db.GetUserFromUserID(req.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get user from database using user id", err)
+		return 
+	}
+
+	match, err := auth.CheckHashedPassword(params.CurrentPassword, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to compare passwords.", err)
+		return 
+	}
+
+	if !match {
+		respondWithError(w, http.StatusUnauthorized, "Mismatched credentials. Please try again.", err)
+		return 
+	}
+
+	hashed_new_password, err := auth.HashPassword(params.NewPassword)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to hash new password", err)
+		return 
+	}
+
+	err = cfg.db.ChangeUserPassword(req.Context(), database.ChangeUserPasswordParams{
+		HashedPassword: hashed_new_password,
+		ID: userID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to change password. Please try again.", err)
+		return 
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

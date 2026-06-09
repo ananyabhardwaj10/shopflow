@@ -24,3 +24,14 @@ SET
     updated_at = NOW()
 WHERE id = $1
 RETURNING *;
+
+-- name: GetUserFromUserID :one
+SELECT * FROM users 
+WHERE id = $1;
+
+-- name: ChangeUserPassword :exec
+UPDATE users 
+SET 
+    hashed_password = $1,
+    updated_at = NOW()
+WHERE id = $2;

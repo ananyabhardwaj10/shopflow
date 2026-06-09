@@ -51,6 +51,7 @@ func main() {
 
 	//Protected Routes
 	mux.Handle("PATCH /api/customer/profile", chain(http.HandlerFunc(apiCfg.handlerUpdateUserProfile), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
+	mux.Handle("PATCH /api/customer/password", chain(http.HandlerFunc(apiCfg.handlerChangePassword), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
 
 	server.ListenAndServe()
 }
