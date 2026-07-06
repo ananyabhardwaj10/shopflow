@@ -11,6 +11,7 @@ import (
 
 type apiConfig struct {
 	db *database.Queries
+	sqlDB *sql.DB
 	jwtSecretKey string 
 }
 func main() {
@@ -40,6 +41,7 @@ func main() {
 
 	apiCfg := apiConfig{
 		db: dbQueries,
+		sqlDB: db,
 		jwtSecretKey: jwtSecretKey,
 	}
 
@@ -52,6 +54,7 @@ func main() {
 	//Protected Routes
 	mux.Handle("PATCH /api/customer/profile", chain(http.HandlerFunc(apiCfg.handlerUpdateUserProfile), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
 	mux.Handle("PATCH /api/customer/password", chain(http.HandlerFunc(apiCfg.handlerChangePassword), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
+	mux.Handle("POST /api/seller/onboard", chain(http.HandlerFunc(apiCfg.handlerSellerOnboarding), apiCfg.authMiddleware, roleMiddleware("customer")))
 
 	server.ListenAndServe()
 }

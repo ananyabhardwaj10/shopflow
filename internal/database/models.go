@@ -20,6 +20,14 @@ type RefreshToken struct {
 	UserID    uuid.UUID
 }
 
+type Seller struct {
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	BusinessName string
+	UserID       uuid.UUID
+}
+
 type User struct {
 	ID             uuid.UUID
 	CreatedAt      time.Time

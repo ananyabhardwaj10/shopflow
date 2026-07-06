@@ -35,3 +35,10 @@ SET
     hashed_password = $1,
     updated_at = NOW()
 WHERE id = $2;
+
+-- name: UpdateUserRole :one
+UPDATE users 
+SET 
+    role = $1
+WHERE id = $2
+RETURNING *;
