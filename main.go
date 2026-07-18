@@ -52,9 +52,13 @@ func main() {
 	mux.HandleFunc("POST /api/auth/refresh", apiCfg.handlerRefreshTokens)
 
 	//Protected Routes
+	//user
 	mux.Handle("PATCH /api/customer/profile", chain(http.HandlerFunc(apiCfg.handlerUpdateUserProfile), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
 	mux.Handle("PATCH /api/customer/password", chain(http.HandlerFunc(apiCfg.handlerChangePassword), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
+
+	//seller
 	mux.Handle("POST /api/seller/onboard", chain(http.HandlerFunc(apiCfg.handlerSellerOnboarding), apiCfg.authMiddleware, roleMiddleware("customer")))
+	mux.Handle("POST /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerCreateProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
 
 	server.ListenAndServe()
 }
