@@ -56,3 +56,48 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	)
 	return i, err
 }
+
+const getAllProductsBySeller = `-- name: GetAllProductsBySeller :many
+SELECT id, created_at, updated_at, name, description, price, stock_quantity, seller_id, category_id FROM products
+WHERE seller_id = $1
+LIMIT $2 OFFSET $3
+`
+
+type GetAllProductsBySellerParams struct {
+	SellerID uuid.UUID
+	Limit    int32
+	Offset   int32
+}
+
+func (q *Queries) GetAllProductsBySeller(ctx context.Context, arg GetAllProductsBySellerParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, getAllProductsBySeller, arg.SellerID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.StockQuantity,
+			&i.SellerID,
+			&i.CategoryID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

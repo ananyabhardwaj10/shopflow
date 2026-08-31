@@ -9,3 +9,8 @@ VALUES (
     $5,
     $6
 ) RETURNING *;
+
+-- name: GetAllProductsBySeller :many
+SELECT * FROM products
+WHERE seller_id = $1
+LIMIT $2 OFFSET $3;
