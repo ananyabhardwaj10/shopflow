@@ -62,6 +62,7 @@ func main() {
 	mux.Handle("POST /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerCreateProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
 	mux.Handle("GET /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerGetAllProductsBySeller), apiCfg.authMiddleware, roleMiddleware("seller")))
 	mux.Handle("PATCH /api/seller/products/{id}", chain(http.HandlerFunc(apiCfg.handlerUpdateProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
+	mux.Handle("DELETE /api/seller/products/{id}", chain(http.HandlerFunc(apiCfg.handlerDeleteProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
 
 	server.ListenAndServe()
 }

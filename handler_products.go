@@ -266,3 +266,36 @@ func (cfg *apiConfig) handlerUpdateProduct(w http.ResponseWriter, req *http.Requ
 		StockQuantity: product.StockQuantity,
 	})
 }
+
+func (cfg *apiConfig) handlerDeleteProduct(w http.ResponseWriter, req *http.Request) {
+	productIDStr := req.PathValue("id")
+	productID, err := uuid.Parse(productIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get product id", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get user id", err)
+		return 
+	}
+
+	seller, err := cfg.db.GetSellerByUserID(req.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get seller information.", err)
+		return 
+	}
+
+	err = cfg.db.DeleteProduct(req.Context(), database.DeleteProductParams{
+		ID: productID, 
+		SellerID: seller.ID, 
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to delete product. Please try again later", err)
+		return 
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
