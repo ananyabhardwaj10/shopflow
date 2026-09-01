@@ -5,6 +5,7 @@ import(
 	"net/http"
 	"strconv"
 	"encoding/json"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/ananyabhardwaj10/shopflow/internal/auth"
@@ -98,7 +99,7 @@ func (cfg *apiConfig) handlerGetAllProductsBySeller(w http.ResponseWriter, req *
 
 	seller, err := cfg.db.GetSellerByUserID(req.Context(), userID)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unable to recognize seller", err)
+		respondWithError(w, http.StatusInternalServerError, "Unable to get seller information at the moment. Please try again.", err)
 		return 
 	}
 
@@ -167,4 +168,101 @@ func (cfg *apiConfig) handlerGetAllProductsBySeller(w http.ResponseWriter, req *
 	}
 
 	respondWithJSON(w, http.StatusOK, allProducts)
+}
+
+func (cfg *apiConfig) handlerUpdateProduct(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		Name *string `json:"product_name"`
+		Description *string `json:"product_description"`
+		Price *float64 `json:"price"`
+		StockQuantity *int32 `json:"stock_quantity"`
+	}
+
+	params := parameters{}
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Improper information. Please try again.", err)
+		return 
+	}
+
+	productIDStr := req.PathValue("id")
+	productID, err := uuid.Parse(productIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get product ID", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get User ID", err)
+		return 
+	}
+
+	seller, err := cfg.db.GetSellerByUserID(req.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get seller information at the moment. Please try again.", err)
+		return
+	}
+
+	name := sql.NullString{}
+	description := sql.NullString{}
+	price := sql.NullString{}
+	stockQuantity := sql.NullInt32{}
+
+	if params.Name != nil {
+		name.String = *params.Name
+		name.Valid = true
+	}
+
+	if params.Description != nil {
+		description.String = *params.Description
+		description.Valid = true
+	}
+
+	if params.Price != nil {
+		price.String = fmt.Sprintf("%.2f", *params.Price)
+		price.Valid = true 
+	}
+
+	if params.StockQuantity != nil {
+		stockQuantity.Int32 = *params.StockQuantity
+		stockQuantity.Valid = true 
+	}
+
+	product, err := cfg.db.UpdateProductDetails(req.Context(), database.UpdateProductDetailsParams{
+		ID: productID, 
+		SellerID: seller.ID,
+		Name: name,
+		Description: description,
+		Price: price,
+		StockQuantity: stockQuantity,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to update product details at the moment. Please try again.", err)
+		return 
+	}
+
+	type response struct {
+		ID uuid.UUID `json:"product_id"`
+		SellerID uuid.UUID `json:"seller_id"`
+		CategoryID uuid.NullUUID `json:"category_id"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Name string `json:"product_name"`
+		Description string `json:"product_description"`
+		Price string `json:"price"`
+		StockQuantity int32 `json:"stock_quantity"`
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		ID: product.ID,
+		SellerID: seller.ID,
+		CategoryID: product.CategoryID,
+		UpdatedAt: product.UpdatedAt,
+		Name: product.Name,
+		Description: product.Description,
+		Price: product.Price,
+		StockQuantity: product.StockQuantity,
+	})
 }

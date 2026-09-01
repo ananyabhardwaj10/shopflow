@@ -14,3 +14,14 @@ VALUES (
 SELECT * FROM products
 WHERE seller_id = $1
 LIMIT $2 OFFSET $3;
+
+-- name: UpdateProductDetails :one
+UPDATE products
+SET 
+    name = COALESCE(sqlc.narg('name'), name),
+    description = COALESCE(sqlc.narg('description'), description),
+    price = COALESCE(sqlc.narg('price'), price),
+    stock_quantity = COALESCE(sqlc.narg('stock_quantity'), stock_quantity),
+    updated_at = NOW()
+WHERE id = $1 AND seller_id = $2
+RETURNING *;

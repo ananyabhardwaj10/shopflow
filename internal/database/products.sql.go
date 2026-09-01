@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -100,4 +101,49 @@ func (q *Queries) GetAllProductsBySeller(ctx context.Context, arg GetAllProducts
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateProductDetails = `-- name: UpdateProductDetails :one
+UPDATE products
+SET 
+    name = COALESCE($3, name),
+    description = COALESCE($4, description),
+    price = COALESCE($5, price),
+    stock_quantity = COALESCE($6, stock_quantity),
+    updated_at = NOW()
+WHERE id = $1 AND seller_id = $2
+RETURNING id, created_at, updated_at, name, description, price, stock_quantity, seller_id, category_id
+`
+
+type UpdateProductDetailsParams struct {
+	ID            uuid.UUID
+	SellerID      uuid.UUID
+	Name          sql.NullString
+	Description   sql.NullString
+	Price         sql.NullString
+	StockQuantity sql.NullInt32
+}
+
+func (q *Queries) UpdateProductDetails(ctx context.Context, arg UpdateProductDetailsParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, updateProductDetails,
+		arg.ID,
+		arg.SellerID,
+		arg.Name,
+		arg.Description,
+		arg.Price,
+		arg.StockQuantity,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.StockQuantity,
+		&i.SellerID,
+		&i.CategoryID,
+	)
+	return i, err
 }
