@@ -52,6 +52,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/refresh", apiCfg.handlerRefreshTokens)
 	mux.HandleFunc("GET /api/categories", apiCfg.handlerCategories)
 	mux.HandleFunc("GET /api/products", apiCfg.handlerGetAllProductsByCategory)
+	mux.HandleFunc("GET /api/products/{id}", apiCfg.handlerGetProductByID)
 
 	//Protected Routes
 	//user

@@ -368,3 +368,42 @@ func (cfg *apiConfig) handlerGetAllProductsByCategory(w http.ResponseWriter, req
 
 	respondWithJSON(w, http.StatusOK, allProducts)
 }
+
+func (cfg *apiConfig) handlerGetProductByID(w http.ResponseWriter, req *http.Request) {
+	productIDStr := req.PathValue("id")
+	productID, err := uuid.Parse(productIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get product id", err)
+		return 
+	}
+
+	product, err := cfg.db.GetProductByID(req.Context(), productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusNotFound, "Product not found", err)
+			return 
+		}
+		respondWithError(w, http.StatusInternalServerError, "Unable to get product at the moment", err)
+		return 
+	}
+
+    type response struct {
+		ProductID uuid.UUID `json:"product_id"`
+		SellerID uuid.UUID `json:"seller_id"`
+		CategoryID uuid.NullUUID `json:"category_id"`
+		Name string `json:"product_name"`
+		Description string `json:"product_description"`
+		Price string `json:"price"`
+		StockQuantity int32 `json:"stock_quantity"`
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		ProductID: product.ID,
+		SellerID: product.SellerID,
+		CategoryID: product.CategoryID,
+		Name: product.Name,
+		Description: product.Description,
+		Price: product.Price,
+		StockQuantity: product.StockQuantity,
+	})
+}
