@@ -73,6 +73,51 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) er
 	return err
 }
 
+const getAllProductsByCategory = `-- name: GetAllProductsByCategory :many
+SELECT id, created_at, updated_at, name, description, price, stock_quantity, seller_id, category_id FROM products 
+WHERE category_id = $1
+LIMIT $2 OFFSET $3
+`
+
+type GetAllProductsByCategoryParams struct {
+	CategoryID uuid.NullUUID
+	Limit      int32
+	Offset     int32
+}
+
+func (q *Queries) GetAllProductsByCategory(ctx context.Context, arg GetAllProductsByCategoryParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, getAllProductsByCategory, arg.CategoryID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.StockQuantity,
+			&i.SellerID,
+			&i.CategoryID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllProductsBySeller = `-- name: GetAllProductsBySeller :many
 SELECT id, created_at, updated_at, name, description, price, stock_quantity, seller_id, category_id FROM products
 WHERE seller_id = $1

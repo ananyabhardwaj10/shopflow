@@ -299,3 +299,72 @@ func (cfg *apiConfig) handlerDeleteProduct(w http.ResponseWriter, req *http.Requ
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (cfg *apiConfig) handlerGetAllProductsByCategory(w http.ResponseWriter, req *http.Request) {
+	categoryIDStr := req.URL.Query().Get("category_id")
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get the category at the moment. Please try again", err)
+		return 
+	}
+
+	pageStr := req.URL.Query().Get("page")
+	limitStr := req.URL.Query().Get("limit")
+	var page int
+	var limit int 
+
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Unable to get page", err)
+			return 
+		}
+	} else {
+		page = 1
+	}
+	
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Unable to get limit", err)
+		return 
+		}
+	} else {
+		limit = 20
+	}
+	
+	offSet := (page - 1) * limit
+
+	productList, err := cfg.db.GetAllProductsByCategory(req.Context(), database.GetAllProductsByCategoryParams{
+		CategoryID: uuid.NullUUID{UUID: categoryID, Valid: true},
+		Limit: int32(limit),
+		Offset: int32(offSet),
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get products by category at the moment", err)
+		return 
+	}
+
+	type response struct {
+		ProductID uuid.UUID `json:"product_id"`
+		SellerID uuid.UUID `json:"seller_id"`
+		Name string `json:"product_name"`
+		Description string `json:"product_description"`
+		Price string `json:"price"`
+	}
+
+	allProducts := []response{}
+
+	for _, product := range productList {
+		allProducts = append(allProducts, response{
+			ProductID: product.ID,
+			SellerID: product.SellerID,
+			Name: product.Name,
+			Description: product.Description,
+			Price: product.Price,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, allProducts)
+}

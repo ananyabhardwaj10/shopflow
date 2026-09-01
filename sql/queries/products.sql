@@ -29,3 +29,8 @@ RETURNING *;
 -- name: DeleteProduct :exec
 DELETE FROM products
 WHERE id = $1 AND seller_id = $2;
+
+-- name: GetAllProductsByCategory :many
+SELECT * FROM products 
+WHERE category_id = $1
+LIMIT $2 OFFSET $3;
