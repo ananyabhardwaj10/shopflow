@@ -10,3 +10,10 @@ DO UPDATE SET
     quantity = cart_items.quantity + 1,
     updated_at = NOW()
 RETURNING *;
+
+-- name: GetAllCartItems :many
+SELECT cart_items.id, cart_items.quantity, products.name, products.price, products.id as product_id
+FROM cart_items
+INNER JOIN products
+ON cart_items.product_id = products.id 
+WHERE user_id = $1;

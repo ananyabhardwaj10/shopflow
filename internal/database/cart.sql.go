@@ -43,3 +43,48 @@ func (q *Queries) AddItemToCart(ctx context.Context, arg AddItemToCartParams) (C
 	)
 	return i, err
 }
+
+const getAllCartItems = `-- name: GetAllCartItems :many
+SELECT cart_items.id, cart_items.quantity, products.name, products.price, products.id as product_id
+FROM cart_items
+INNER JOIN products
+ON cart_items.product_id = products.id 
+WHERE user_id = $1
+`
+
+type GetAllCartItemsRow struct {
+	ID        uuid.UUID
+	Quantity  int32
+	Name      string
+	Price     string
+	ProductID uuid.UUID
+}
+
+func (q *Queries) GetAllCartItems(ctx context.Context, userID uuid.UUID) ([]GetAllCartItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCartItems, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllCartItemsRow
+	for rows.Next() {
+		var i GetAllCartItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Quantity,
+			&i.Name,
+			&i.Price,
+			&i.ProductID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
