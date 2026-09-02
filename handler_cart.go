@@ -139,3 +139,30 @@ func (cfg *apiConfig) handlerUpdateCartItemQuantity(w http.ResponseWriter, req *
 		UpdatedQuantity: cartItem.Quantity,
 	})
 }
+
+func (cfg *apiConfig) handlerDeleteItemFromCart(w http.ResponseWriter, req *http.Request) {
+	cartItemIDStr := req.PathValue("id")
+	cartItemID, err := uuid.Parse(cartItemIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get cart item", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
+		return 
+	}
+
+	err = cfg.db.DeleteItemFromCart(req.Context(), database.DeleteItemFromCartParams{
+		ID: cartItemID, 
+		UserID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to delete item from cart", err)
+		return 
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

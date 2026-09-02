@@ -25,3 +25,7 @@ SET
     updated_at = NOW()
 WHERE id = $2 AND user_id = $3
 RETURNING *;
+
+-- name: DeleteItemFromCart :exec
+DELETE FROM cart_items
+WHERE id = $1 AND user_id = $2;
