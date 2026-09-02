@@ -88,3 +88,32 @@ func (q *Queries) GetAllCartItems(ctx context.Context, userID uuid.UUID) ([]GetA
 	}
 	return items, nil
 }
+
+const updateCartItemQuantity = `-- name: UpdateCartItemQuantity :one
+UPDATE cart_items 
+SET 
+    quantity = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3
+RETURNING id, created_at, updated_at, user_id, product_id, quantity
+`
+
+type UpdateCartItemQuantityParams struct {
+	Quantity int32
+	ID       uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error) {
+	row := q.db.QueryRowContext(ctx, updateCartItemQuantity, arg.Quantity, arg.ID, arg.UserID)
+	var i CartItem
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.ProductID,
+		&i.Quantity,
+	)
+	return i, err
+}

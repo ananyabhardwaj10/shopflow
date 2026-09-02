@@ -17,3 +17,11 @@ FROM cart_items
 INNER JOIN products
 ON cart_items.product_id = products.id 
 WHERE user_id = $1;
+
+-- name: UpdateCartItemQuantity :one
+UPDATE cart_items 
+SET 
+    quantity = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3
+RETURNING *;

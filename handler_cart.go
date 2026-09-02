@@ -23,7 +23,7 @@ func (cfg *apiConfig) handlerAddToCart(w http.ResponseWriter, req *http.Request)
 
 	userID, err := auth.GetUserIDFromContext(req.Context())
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Unable to get user id", err)
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
 		return 
 	}
 
@@ -55,7 +55,7 @@ func (cfg *apiConfig) handlerAddToCart(w http.ResponseWriter, req *http.Request)
 func (cfg *apiConfig) handlerGetCartItems(w http.ResponseWriter, req *http.Request) {
 	userID, err := auth.GetUserIDFromContext(req.Context())
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Unable to get user id", err)
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
 		return 
 	}
 
@@ -88,4 +88,54 @@ func (cfg *apiConfig) handlerGetCartItems(w http.ResponseWriter, req *http.Reque
 	}
 
 	respondWithJSON(w, http.StatusOK, allItems)
+}
+
+func (cfg *apiConfig) handlerUpdateCartItemQuantity(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		Quantity int32 `json:"quantity"`
+	}
+
+	params := parameters{}
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect update information", err)
+		return 
+	}
+
+	cartItemIDStr := req.PathValue("id")
+	cartItemID, err := uuid.Parse(cartItemIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get cart item", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
+		return 
+	}
+
+	cartItem, err := cfg.db.UpdateCartItemQuantity(req.Context(), database.UpdateCartItemQuantityParams{
+		Quantity: params.Quantity,
+		ID: cartItemID,
+		UserID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to update item quantity", err)
+		return 
+	}
+
+	type response struct {
+		UserID uuid.UUID `json:"user_id"`
+		CartItemID uuid.UUID `json:"cart_item_id"`
+		UpdatedQuantity int32 `json:"updated_quantity"`
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		UserID: cartItem.UserID,
+		CartItemID: cartItem.ID,
+		UpdatedQuantity: cartItem.Quantity,
+	})
 }
