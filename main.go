@@ -58,8 +58,9 @@ func main() {
 	//user
 	mux.Handle("PATCH /api/customer/profile", chain(http.HandlerFunc(apiCfg.handlerUpdateUserProfile), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
 	mux.Handle("PATCH /api/customer/password", chain(http.HandlerFunc(apiCfg.handlerChangePassword), apiCfg.authMiddleware, roleMiddleware("customer", "seller"),))
+	mux.Handle("POST /api/cart", chain(http.HandlerFunc(apiCfg.handlerAddToCart), apiCfg.authMiddleware, roleMiddleware("customer", "seller")))
 
-	//seller
+	//only seller
 	mux.Handle("POST /api/seller/onboard", chain(http.HandlerFunc(apiCfg.handlerSellerOnboarding), apiCfg.authMiddleware, roleMiddleware("customer")))
 	mux.Handle("POST /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerCreateProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
 	mux.Handle("GET /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerGetAllProductsBySeller), apiCfg.authMiddleware, roleMiddleware("seller")))

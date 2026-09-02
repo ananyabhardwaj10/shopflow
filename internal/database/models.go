@@ -11,6 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type CartItem struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    uuid.UUID
+	ProductID uuid.UUID
+	Quantity  int32
+}
+
 type Category struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
