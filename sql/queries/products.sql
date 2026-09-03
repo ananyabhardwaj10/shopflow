@@ -38,3 +38,11 @@ LIMIT $2 OFFSET $3;
 -- name: GetProductByID :one
 SELECT * FROM products 
 WHERE id = $1;
+
+-- name: ReduceProductStock :one
+UPDATE products 
+SET 
+    stock_quantity = stock_quantity - $1,
+    updated_at = NOW()
+WHERE id = $2
+RETURNING *;

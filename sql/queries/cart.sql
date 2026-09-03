@@ -29,3 +29,7 @@ RETURNING *;
 -- name: DeleteItemFromCart :exec
 DELETE FROM cart_items
 WHERE id = $1 AND user_id = $2;
+
+-- name: ClearCartAfterOrder :exec 
+DELETE FROM cart_items 
+WHERE user_id = $1;

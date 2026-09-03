@@ -27,6 +27,26 @@ type Category struct {
 	Name      string
 }
 
+type Order struct {
+	ID              uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	UserID          uuid.UUID
+	TotalAmount     string
+	Status          string
+	DeliveryAddress string
+}
+
+type OrderItem struct {
+	ID              uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	OrderID         uuid.UUID
+	ProductID       uuid.UUID
+	Quantity        int32
+	PriceAtPurchase string
+}
+
 type Product struct {
 	ID            uuid.UUID
 	CreatedAt     time.Time
