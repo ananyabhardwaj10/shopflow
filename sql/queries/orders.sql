@@ -6,3 +6,7 @@ VALUES (
     $2,
     $3
 ) RETURNING *;
+
+-- name: GetOrderHistory :many
+SELECT * FROM orders 
+WHERE user_id = $1;

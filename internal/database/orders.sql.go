@@ -41,3 +41,39 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 	)
 	return i, err
 }
+
+const getOrderHistory = `-- name: GetOrderHistory :many
+SELECT id, created_at, updated_at, user_id, total_amount, status, delivery_address FROM orders 
+WHERE user_id = $1
+`
+
+func (q *Queries) GetOrderHistory(ctx context.Context, userID uuid.UUID) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, getOrderHistory, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.TotalAmount,
+			&i.Status,
+			&i.DeliveryAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

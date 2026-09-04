@@ -127,3 +127,37 @@ func (cfg *apiConfig) handlerPlaceOrder(w http.ResponseWriter, req *http.Request
 		TotalAmount: order.TotalAmount,
 	})
 }
+
+func (cfg *apiConfig) handlerGetOrderHistory(w http.ResponseWriter, req *http.Request) {
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
+		return 
+	}
+
+	orderList, err := cfg.db.GetOrderHistory(req.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get order history", err)
+		return 
+	}
+
+	type response struct {
+		OrderID uuid.UUID `json:"order_id"`
+		UserID uuid.UUID `json:"user_id"`
+		Status string `json:"status"`
+		TotalAmount string `json:"total_amount"` 
+	}
+
+	allOrders := []response{}
+
+	for _, o := range orderList {
+		allOrders = append(allOrders, response{
+			OrderID: o.ID, 
+			UserID: o.UserID, 
+			Status: o.Status, 
+			TotalAmount: o.TotalAmount,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, allOrders)
+}
