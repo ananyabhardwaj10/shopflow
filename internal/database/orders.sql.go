@@ -77,3 +77,32 @@ func (q *Queries) GetOrderHistory(ctx context.Context, userID uuid.UUID) ([]Orde
 	}
 	return items, nil
 }
+
+const updateOrderStatus = `-- name: UpdateOrderStatus :one
+UPDATE orders 
+SET 
+    status = $1,
+    updated_at = NOW()
+WHERE id = $2
+RETURNING id, created_at, updated_at, user_id, total_amount, status, delivery_address
+`
+
+type UpdateOrderStatusParams struct {
+	Status string
+	ID     uuid.UUID
+}
+
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error) {
+	row := q.db.QueryRowContext(ctx, updateOrderStatus, arg.Status, arg.ID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.TotalAmount,
+		&i.Status,
+		&i.DeliveryAddress,
+	)
+	return i, err
+}

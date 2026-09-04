@@ -45,6 +45,7 @@ type OrderItem struct {
 	ProductID       uuid.UUID
 	Quantity        int32
 	PriceAtPurchase string
+	Status          string
 }
 
 type Product struct {

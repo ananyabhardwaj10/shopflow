@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkAllOrderItemsConfirmed = `-- name: CheckAllOrderItemsConfirmed :one
+SELECT COUNT(*) FROM order_items
+WHERE order_id = $1
+AND status != 'confirmed'
+`
+
+func (q *Queries) CheckAllOrderItemsConfirmed(ctx context.Context, orderID uuid.UUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkAllOrderItemsConfirmed, orderID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createOrderItem = `-- name: CreateOrderItem :one
 INSERT INTO order_items (id, order_id, product_id, quantity, price_at_purchase)
 VALUES (
@@ -19,7 +32,7 @@ VALUES (
     $2,
     $3, 
     $4
-) RETURNING id, created_at, updated_at, order_id, product_id, quantity, price_at_purchase
+) RETURNING id, created_at, updated_at, order_id, product_id, quantity, price_at_purchase, status
 `
 
 type CreateOrderItemParams struct {
@@ -45,6 +58,50 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 		&i.ProductID,
 		&i.Quantity,
 		&i.PriceAtPurchase,
+		&i.Status,
+	)
+	return i, err
+}
+
+const updateOrderItemStatus = `-- name: UpdateOrderItemStatus :one
+UPDATE order_items
+SET 
+    status = $1, 
+    updated_at = NOW()
+WHERE order_items.id = $2 AND order_items.order_id = $3
+AND EXISTS (
+    SELECT 1 FROM products p
+    JOIN sellers s ON p.seller_id = s.id 
+    WHERE p.id = order_items.product_id
+    AND s.user_id = $4
+)
+RETURNING id, created_at, updated_at, order_id, product_id, quantity, price_at_purchase, status
+`
+
+type UpdateOrderItemStatusParams struct {
+	Status  string
+	ID      uuid.UUID
+	OrderID uuid.UUID
+	UserID  uuid.UUID
+}
+
+func (q *Queries) UpdateOrderItemStatus(ctx context.Context, arg UpdateOrderItemStatusParams) (OrderItem, error) {
+	row := q.db.QueryRowContext(ctx, updateOrderItemStatus,
+		arg.Status,
+		arg.ID,
+		arg.OrderID,
+		arg.UserID,
+	)
+	var i OrderItem
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.OrderID,
+		&i.ProductID,
+		&i.Quantity,
+		&i.PriceAtPurchase,
+		&i.Status,
 	)
 	return i, err
 }

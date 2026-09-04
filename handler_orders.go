@@ -161,3 +161,113 @@ func (cfg *apiConfig) handlerGetOrderHistory(w http.ResponseWriter, req *http.Re
 
 	respondWithJSON(w, http.StatusOK, allOrders)
 }
+
+func (cfg *apiConfig) handlerUpdateOrderStatus(w http.ResponseWriter, req *http.Request) {
+	type parameters struct {
+		OrderItemStatus string `json:"order_item_status"`
+	}
+
+	params := parameters{}
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Improper Information", err)
+		return 
+	}
+
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
+		return 
+	}
+
+	orderIdStr := req.PathValue("order_id")
+	orderID, err := uuid.Parse(orderIdStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get order information", err)
+		return 
+	}
+
+	orderItemIDStr := req.PathValue("item_id")
+	orderItemID, err := uuid.Parse(orderItemIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get order information", err)
+		return 
+	}
+
+	if params.OrderItemStatus != "confirmed" {
+		respondWithError(w, http.StatusBadRequest, "Improper Information", err)
+		return 
+	}
+
+	transaction, err := cfg.sqlDB.BeginTx(req.Context(), nil)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to process order status change", err)
+		return 
+	}
+
+	defer transaction.Rollback()
+
+	querytx := cfg.db.WithTx(transaction)
+
+	orderItem, err := querytx.UpdateOrderItemStatus(req.Context(), database.UpdateOrderItemStatusParams{
+		Status: params.OrderItemStatus,
+		ID: orderItemID,
+		OrderID: orderID,
+		UserID: userID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to process order status change", err)
+		return 
+	}
+
+	allUpdated, err := querytx.CheckAllOrderItemsConfirmed(req.Context(), orderID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to process order status change", err)
+		return 
+	}
+
+	var order database.Order
+
+	if allUpdated == 0 {
+		order, err = querytx.UpdateOrderStatus(req.Context(), database.UpdateOrderStatusParams{
+			Status: params.OrderItemStatus, 
+			ID: orderID,
+		})
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Unable to process order status change", err)
+			return
+		} 
+	} 
+
+	err = transaction.Commit()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to process order status change", err)
+		return 
+	}
+
+	type response struct {
+		OrderID uuid.UUID `json:"order_id"`
+		OrderItemID uuid.UUID `json:"order_item_id"`
+		UserID uuid.UUID `json:"user_id"`
+		OrderStatus string `json:"order_status,omitempty"`
+		OrderItemStatus string `json:"order_item_status"`
+	}
+
+	if allUpdated == 0 {
+		respondWithJSON(w, http.StatusOK, response{
+			OrderID: order.ID, 
+			OrderItemID: orderItem.ID,
+			UserID: userID, 
+			OrderStatus: order.Status,
+			OrderItemStatus: orderItem.Status,
+		})
+	} else {
+		respondWithJSON(w, http.StatusOK, response{
+			OrderID: orderID, 
+			OrderItemID: orderItem.ID,
+			UserID: userID, 
+			OrderItemStatus: orderItem.Status,
+		})
+	}
+}

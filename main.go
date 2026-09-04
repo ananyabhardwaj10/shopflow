@@ -71,6 +71,7 @@ func main() {
 	mux.Handle("GET /api/seller/products", chain(http.HandlerFunc(apiCfg.handlerGetAllProductsBySeller), apiCfg.authMiddleware, roleMiddleware("seller")))
 	mux.Handle("PATCH /api/seller/products/{id}", chain(http.HandlerFunc(apiCfg.handlerUpdateProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
 	mux.Handle("DELETE /api/seller/products/{id}", chain(http.HandlerFunc(apiCfg.handlerDeleteProduct), apiCfg.authMiddleware, roleMiddleware("seller")))
+	mux.Handle("PATCH /api/orders/{order_id}/items/{item_id}/status", chain(http.HandlerFunc(apiCfg.handlerUpdateOrderStatus), apiCfg.authMiddleware, roleMiddleware("seller")))
 
 	server.ListenAndServe()
 }
