@@ -42,6 +42,31 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 	return i, err
 }
 
+const getOrderByID = `-- name: GetOrderByID :one
+SELECT id, created_at, updated_at, user_id, total_amount, status, delivery_address FROM orders
+WHERE id = $1 AND user_id = $2
+`
+
+type GetOrderByIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetOrderByID(ctx context.Context, arg GetOrderByIDParams) (Order, error) {
+	row := q.db.QueryRowContext(ctx, getOrderByID, arg.ID, arg.UserID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.TotalAmount,
+		&i.Status,
+		&i.DeliveryAddress,
+	)
+	return i, err
+}
+
 const getOrderHistory = `-- name: GetOrderHistory :many
 SELECT id, created_at, updated_at, user_id, total_amount, status, delivery_address FROM orders 
 WHERE user_id = $1

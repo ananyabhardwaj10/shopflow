@@ -26,3 +26,10 @@ RETURNING *;
 SELECT COUNT(*) FROM order_items
 WHERE order_id = $1
 AND status != 'confirmed';
+
+-- name: GetOrderItems :many
+SELECT order_items.id, order_items.quantity, order_items.price_at_purchase, order_items.status, products.name, products.id as product_id
+FROM order_items
+INNER JOIN products
+ON order_items.product_id = products.id
+WHERE order_id = $1; 

@@ -18,3 +18,8 @@ SET
     updated_at = NOW()
 WHERE id = $2
 RETURNING *;
+
+-- name: GetOrderByID :one
+SELECT * FROM orders
+WHERE id = $1 AND user_id = $2;
+

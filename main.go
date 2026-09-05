@@ -64,6 +64,7 @@ func main() {
 	mux.Handle("DELETE /api/cart/{id}", chain(http.HandlerFunc(apiCfg.handlerDeleteItemFromCart), apiCfg.authMiddleware, roleMiddleware("customer", "seller")))
 	mux.Handle("POST /api/orders", chain(http.HandlerFunc(apiCfg.handlerPlaceOrder), apiCfg.authMiddleware, roleMiddleware("customer", "seller")))
 	mux.Handle("GET /api/orders", chain(http.HandlerFunc(apiCfg.handlerGetOrderHistory), apiCfg.authMiddleware, roleMiddleware("customer", "seller")))
+	mux.Handle("GET /api/orders/{id}", chain(http.HandlerFunc(apiCfg.handlerGetOrderDetails), apiCfg.authMiddleware, roleMiddleware("customer", "seller")))
 
 	//only seller
 	mux.Handle("POST /api/seller/onboard", chain(http.HandlerFunc(apiCfg.handlerSellerOnboarding), apiCfg.authMiddleware, roleMiddleware("customer")))

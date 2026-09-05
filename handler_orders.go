@@ -271,3 +271,71 @@ func (cfg *apiConfig) handlerUpdateOrderStatus(w http.ResponseWriter, req *http.
 		})
 	}
 }
+
+func (cfg *apiConfig) handlerGetOrderDetails(w http.ResponseWriter, req *http.Request) {
+	userID, err := auth.GetUserIDFromContext(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect User Information", err)
+		return 
+	}
+
+	orderIDStr := req.PathValue("id")
+	orderID, err := uuid.Parse(orderIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Incorrect Information", err)
+		return 
+	}
+
+	order, err := cfg.db.GetOrderByID(req.Context(), database.GetOrderByIDParams{
+		ID: orderID, 
+		UserID: userID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get order details", err)
+		return 
+	}
+
+	orderItemList, err := cfg.db.GetOrderItems(req.Context(), orderID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to get order details", err)
+		return 
+	}
+
+	type orderItemResponse struct {
+		OrderItemID uuid.UUID `json:"order_item_id"`
+		ProductID uuid.UUID `json:"product_id"`
+		ProductName string `json:"product_name"`
+		QuantityOrdered int32 `json:"quantity_ordered"`
+		ItemPrice string `json:"item_price"`
+		ItemStatus string `json:"item_status"`
+	}
+
+	type response struct {
+		UserID uuid.UUID `json:"user_id"`
+		OrderID uuid.UUID `json:"order_id"`
+		OrderStatus string `json:"order_status"`
+		TotalAmount string `json:"total_amount"`
+		Items []orderItemResponse `json:"items"`
+	}
+
+	allItems := []orderItemResponse{}
+
+	for _, orderItem := range orderItemList {
+		allItems = append(allItems, orderItemResponse{
+			OrderItemID: orderItem.ID, 
+			ProductID: orderItem.ProductID, 
+			ProductName: orderItem.Name, 
+			QuantityOrdered: orderItem.Quantity, 
+			ItemPrice: orderItem.PriceAtPurchase,
+			ItemStatus: orderItem.Status,
+		}) 
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		UserID: userID,
+		OrderID: order.ID, 
+		OrderStatus: order.Status, 
+		TotalAmount: order.TotalAmount,
+		Items: allItems,
+	})
+}

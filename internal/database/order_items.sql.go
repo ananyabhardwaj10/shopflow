@@ -63,6 +63,53 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	return i, err
 }
 
+const getOrderItems = `-- name: GetOrderItems :many
+SELECT order_items.id, order_items.quantity, order_items.price_at_purchase, order_items.status, products.name, products.id as product_id
+FROM order_items
+INNER JOIN products
+ON order_items.product_id = products.id
+WHERE order_id = $1
+`
+
+type GetOrderItemsRow struct {
+	ID              uuid.UUID
+	Quantity        int32
+	PriceAtPurchase string
+	Status          string
+	Name            string
+	ProductID       uuid.UUID
+}
+
+func (q *Queries) GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOrderItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOrderItems, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOrderItemsRow
+	for rows.Next() {
+		var i GetOrderItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Quantity,
+			&i.PriceAtPurchase,
+			&i.Status,
+			&i.Name,
+			&i.ProductID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateOrderItemStatus = `-- name: UpdateOrderItemStatus :one
 UPDATE order_items
 SET 
